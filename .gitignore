@@ -1,0 +1,8 @@
+.coverage
+.venv/
+*.egg-info/
+*.pyc
+dist/
+**node_modules/
+benchmarkweb/static/react/js/.bundle.js
+deploy/
