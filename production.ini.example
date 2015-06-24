@@ -1,0 +1,74 @@
+###
+# app configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/1.5-branch/narr/environment.html
+###
+
+[app:main]
+use = egg:benchmarkweb
+
+pyramid.reload_templates = false
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.default_locale_name = en
+pyramid.includes =
+    pyramid_mako
+
+mako.directories = benchmarkweb:templates
+
+redis.host = 127.0.0.1
+redis.port = 6379
+redis.db = 0
+
+graphite.url = http://10.0.3.100:9000
+graphite.format = png
+
+juju.api.endpoint = wss://localhost:17070
+juju.api.user = user-admin
+juju.api.secret = fdd98be0b38076387dba1e702afff7d7
+
+###
+# wsgi server configuration
+###
+
+[server:main]
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+
+###
+# logging configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/1.5-branch/narr/logging.html
+###
+
+[loggers]
+keys = root, benchmarkweb, requests
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+
+[logger_benchmarkweb]
+level = WARN
+handlers =
+qualname = benchmarkweb
+
+[logger_requests]
+level = WARN
+handlers =
+qualname = requests
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s

@@ -1,0 +1,79 @@
+###
+# app configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/1.5-branch/narr/environment.html
+###
+
+[app:main]
+use = egg:benchmarkweb
+
+pyramid.reload_templates = true
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.default_locale_name = en
+pyramid.includes =
+    pyramid_mako
+    pyramid_debugtoolbar
+
+# By default, the toolbar only appears for clients from IP addresses
+# '127.0.0.1' and '::1'.
+# debugtoolbar.hosts = 127.0.0.1 ::1
+
+mako.directories = benchmarkweb:templates
+
+redis.host = 127.0.0.1
+redis.port = 6379
+redis.db = 0
+
+graphite.url = http://10.0.3.141:9001
+graphite.format = png
+
+juju.api.endpoint = wss://localhost:17070
+juju.api.user = user-admin
+juju.api.secret = 3514f4040084adb5dd1e1b384877bd8c
+
+###
+# wsgi server configuration
+###
+
+[server:main]
+use = egg:waitress#main
+host = 0.0.0.0
+port = 6543
+
+###
+# logging configuration
+# http://docs.pylonsproject.org/projects/pyramid/en/1.5-branch/narr/logging.html
+###
+
+[loggers]
+keys = root, benchmarkweb, requests
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = INFO
+handlers = console
+
+[logger_benchmarkweb]
+level = DEBUG
+handlers =
+qualname = benchmarkweb
+
+[logger_requests]
+level = DEBUG
+handlers =
+qualname = requests
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
