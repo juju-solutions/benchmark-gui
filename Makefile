@@ -5,10 +5,12 @@ NOSE=$(PYHOME)/nosetests
 FLAKE8=$(PYHOME)/flake8
 PYTHON=$(PYHOME)/python
 
+
 all: lint test
 
-.PHONY: clean
+.PHONY: clean npm
 clean:
+	rm -rf $(PROJECT)/static/react/node_modules
 	rm -rf MANIFEST dist/* $(PROJECT).egg-info .coverage
 	find . -name '*.pyc' -delete
 	rm -rf .venv
@@ -21,13 +23,15 @@ lint: .venv
 	@$(FLAKE8) $(PROJECT) --ignore E501 && echo OK
 
 .venv:
-	sudo apt-get install -qy python-virtualenv
+	sudo apt-get install -qy python-virtualenv libpq-dev python-dev
 	virtualenv .venv
 	$(PYTHON) setup.py develop
 
-serve:
-	.venv/bin/python serve.py
+npm:
+	cd $(PROJECT)/static/react; npm install
+
+serve: .venv
+	.venv/bin/pserve development.ini
 
 release: clean
-	tar --exclude-vcs -cvzf ../benchmkark-gui.tar.gz *
-
+	tar --exclude-vcs -cvzf ../benchmark-web.tar.gz *

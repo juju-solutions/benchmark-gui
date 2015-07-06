@@ -1,41 +1,83 @@
 import datetime
-import json
-import uuid
 
 import pytz
-import redis
+
+from . import models as M
 
 
-class Redis(redis.StrictRedis):
-    def __init__(self, request):
-        super(Redis, self).__init__(
-            host=request.registry.settings['redis.host'],
-            port=request.registry.settings['redis.port'],
-            db=int(request.registry.settings['redis.db']),
-        )
+class DB(object):
+    def __init__(self, session, settings):
+        self.db = self.session = session
+        self.env = self.get_env(settings)
 
-    def get_profile_data(self, key, action=None, start=None, stop=None):
-        """Return saved profiling data for the unit identified by `key`.
+    @classmethod
+    def from_request(cls, request):
+        return cls(request.db, request.registry.settings)
 
-        :param key: unit name in the form "unit-pts-0"
+    @classmethod
+    def from_settings(cls, settings):
+        from sqlalchemy import engine_from_config
+        from sqlalchemy.orm import sessionmaker
 
-        Optionally filter on `action` (uuid).
+        engine = engine_from_config(settings, prefix='sqlalchemy.')
+        session = sessionmaker(bind=engine)()
+
+        return cls(session, settings)
+
+    def get_env(self, settings):
+        env = self.db.query(M.Environment).filter_by(
+            uuid=settings['juju.env.uuid']).first()
+        if not env:
+            env = M.Environment(
+                uuid=settings['juju.env.uuid'],
+                name=settings['juju.env.name'],
+                provider_type=settings['juju.env.providertype'],
+                default_series=settings['juju.env.defaultseries'],
+                region=settings['juju.env.region'],
+            )
+            self.db.add(env)
+        return env
+
+    def get_environments(self):
+        """Return a query of all Environments.
+
+        """
+        return self.db.query(M.Environment)
+
+    def get_unit(self, name):
+        """Return Unit identified by ``name``.
+
+        :param name: unit name in the form "unit-pts-0"
+
+        """
+        return self.db.query(M.Unit) \
+            .filter(M.Unit.environment_id == self.env.id) \
+            .filter_by(name=name) \
+            .first()
+
+    def get_profile_data(self, unit_name, action_uuid=None, start=None,
+                         stop=None):
+        """Return saved profiling data for a unit.
+
+        :param unit_name: unit name in the form "unit-pts-0"
+
+        Optionally filter on `action_uuid`
         Optionally filter on `start` <= timestamp >= `stop`.
 
         """
-        result = self.get(key)
-        if not result:
+        unit = self.get_unit(unit_name)
+        if not unit:
             return None
 
-        result = json.loads(result)
+        result = unit.data
         if not isinstance(result, list):
             result = [result]
 
-        if not (action or start or stop):
+        if not (action_uuid or start or stop):
             return result
 
         def match(d):
-            if action and d.get('action') != action:
+            if action_uuid and d.get('action') != action_uuid:
                 return False
             ts = d.get('timestamp')
             if ts:
@@ -53,33 +95,50 @@ class Redis(redis.StrictRedis):
         """Save profiling data for the unit identified by `key`.
 
         """
-        self.set(key, json.dumps(data))
+        unit = self.get_unit(key)
+        if not unit:
+            unit = M.Unit(name=key)
+            self.env.units.append(unit)
+        unit.data = data
+
+    def get_service(self, name):
+        """Return Service named ``name`` in the current environment
+
+        """
+        return self.db.query(M.Service) \
+            .filter(M.Service.environment_id == self.env.id) \
+            .filter_by(name=name) \
+            .first()
+
+    def get_services(self):
+        """Return all Services in the current environment
+
+        """
+        return self.db.query(M.Service) \
+            .filter(M.Service.environment_id == self.env.id)
 
     def get_services_data(self):
         """Return data for all services.
 
         """
-        result = self.get('services')
-        return json.loads(result) if result else None
+        return {s.name: s.data for s in self.get_services()}
 
     def get_service_data(self, service):
         """Return data (json) for service.
 
         """
-        result = self.get_services_data()
-        return result.get(service) if result else None
+        svc = self.get_service(service)
+        return svc.data if svc else None
 
     def set_service_data(self, service, data):
         """Save data (json) for service.
 
         """
-        def update(pipe):
-            d = self.get_services_data() or {}
-            d[service] = data
-            pipe.multi()
-            pipe.set('services', json.dumps(d))
-
-        self.transaction(update, 'services')
+        svc = self.get_service(service)
+        if not svc:
+            svc = M.Service(name=service)
+            self.env.services.append(svc)
+        svc.data = data
 
     def get_services_benchmarks(self):
         """Return list of benchmark names, by service.
@@ -92,93 +151,53 @@ class Redis(redis.StrictRedis):
 
         """
         services = self.get_services_data() or {}
-        return {svc: services[svc].get('benchmarks', []) for svc in services}
+        return {svc: services[svc].get('benchmarks', [])
+                for svc in services}
+
+    def is_benchmark_action(self, action):
+        """Return True if action is a benchmark (as defined by the charm).
+
+        """
+        svc_benchmarks = self.get_services_benchmarks()
+        if action.service not in svc_benchmarks:
+            return True
+        if action.name in svc_benchmarks[action.service]:
+            return True
+        return False
+
+    def get_benchmarks(self):
+        """Return all Actions, grouped by benchmark name.
+
+        """
+        benchmarks = {}
+        for a in self.get_actions():
+            benchmarks.setdefault(a.benchmark_name, []).append(a)
+        return benchmarks
 
     def get_action(self, uuid):
+        """Return Action identified by ``uuid``.
+
+        """
+        return self.db.query(M.Action).filter_by(uuid=uuid).first()
+
+    def get_actions(self):
+        """Return all Actions.
+
+        """
+        return self.db.query(M.Action)
+
+    def get_action_data(self, uuid):
         """Return data for an action.
 
         """
-        result = self.get(uuid)
-        return json.loads(result) if result else None
-
-    def update_action_tags(self, action_uuid, tags):
-        """Update the list of tags associated with an action.
-
-        """
-
-        def update_action(pipe):
-            action = self.get_action(action_uuid) or {}
-            action['tags'] = tags
-            pipe.multi()
-            pipe.set(action_uuid, json.dumps(action))
-
-        self.transaction(update_action, action_uuid)
-
-    def insert_action_graph(self, action_uuid, datapoints, label):
-        """Save a new graph and return its uuid.
-
-        """
-        graph_uuid = uuid.uuid4().hex
-        graph = {
-            'datapoints': datapoints,
-            'label': label,
+        action = self.get_action(uuid)
+        if not action:
+            return None
+        action.data = action.data or {}
+        action.data['graphs'] = {
+            g.uuid: g.data for g in action.graphs
         }
-
-        def update(pipe):
-            action = self.get_action(action_uuid) or {}
-            action.setdefault('graphs', {})[graph_uuid] = graph
-            pipe.multi()
-            pipe.set(action_uuid, json.dumps(action))
-
-        self.transaction(update, action_uuid)
-        return graph_uuid
-
-    def delete_action_graph(self, action_uuid, graph_uuid):
-        """Delete a graph.
-
-        """
-        def update(pipe):
-            action = self.get_action(action_uuid) or {}
-            del action['graphs'][graph_uuid]
-            pipe.multi()
-            pipe.set(action_uuid, json.dumps(action))
-
-        self.transaction(update, action_uuid)
-
-    def get_comparison(self, uuid):
-        """Return data for an action comparison.
-
-        """
-        result = self.get(uuid)
-        return json.loads(result) if result else None
-
-    def insert_comparison_graph(self, comparison_id, datapoints, label):
-        """Save a new graph and return its uuid.
-
-        """
-        graph_uuid = uuid.uuid4().hex
-        graph = {
-            'datapoints': datapoints,
-            'label': label,
-        }
-
-        def update(pipe):
-            comp = self.get_comparison(comparison_id) or {}
-            comp.setdefault('graphs', {})[graph_uuid] = graph
-            pipe.multi()
-            pipe.set(comparison_id, json.dumps(comp))
-
-        self.transaction(update, comparison_id)
-        return graph_uuid
-
-    def delete_comparison_graph(self, comparison_id, graph_uuid):
-        """Delete a graph.
-
-        """
-        def update(pipe):
-            comp = self.get_comparison(comparison_id) or {}
-            del comp['graphs'][graph_uuid]
-            pipe.multi()
-            pipe.set(comparison_id, json.dumps(comp))
-
-        self.transaction(update, comparison_id)
+        action.data['tags'] = [
+            t.name for t in action.tags
+        ]
+        return action.data

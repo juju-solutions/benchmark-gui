@@ -1,0 +1,253 @@
+body {
+  font-family: 'Ubuntu' , Arial, sans-serif;
+  font-weight: 300;
+}
+
+.red {
+  color: #d95c5c;
+}
+.green {
+  color: #5bbd72;
+}
+.yellow {
+  color: #f2c61f;
+}
+.blue {
+  color: #337AB7;
+}
+
+#version {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+}
+
+.header {
+  background-color: #fff;
+  border-bottom: 1px solid #fff;
+  /*min-height: 104px;*/
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+
+}
+
+.header h1 {
+  padding: 31px 0;
+  height: 100%;
+  font-size: 2em;
+  margin: 0;
+}
+
+.btn-launch {
+  margin-top: 20px;
+}
+
+.clear {
+  clear: both;
+}
+
+.divide {
+  height: 2px;
+  width: 100%;
+  content: ' ';
+  border-bottom: 1px dotted #888;
+  margin: 10px 0;
+  padding: 0
+}
+
+textarea.yaml {
+  width: 100%;
+  height: 300px;
+  font-family: mono;
+  line-height: 1.2em;
+}
+
+tbody.highlighted {
+  background: white;
+}
+
+tr.open {
+  display: auto;
+}
+
+tr.closed {
+  display: none;
+}
+
+
+/* BOOTSTRAP OVERRIDES */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 300;
+}
+
+.nav-pills a {
+  color: #337AB7;
+}
+
+.navbar-inverse {
+  background-color: #000;
+}
+
+.navbar-inverse .navbar-brand {
+  color: white;
+}
+
+.navbar-brand {
+  font-size: 2.2em;
+}
+
+@media (min-width: 1200px) {
+  .navbar-fixed-top .container {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .container {
+    max-width: 1480px;
+    width: 100%;
+  }
+}
+
+.container {
+  clear: both;
+}
+
+.open>.dropdown-toggle.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #c03f11;
+  border-color: #c03f11;
+}
+
+.table > thead > tr > th {
+  color: #B2B2B2;
+  border: 0px;
+  border-bottom: 1px solid #B2B2B2;
+  font-weight: 300
+}
+
+table thead th {
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.table > tbody > tr > td{
+  padding: 8px;
+  line-height: 1;
+  vertical-align: middle;
+  border: 0;
+}
+
+table.table tbody {
+  border-bottom: 1px dotted #B2B2B2;
+}
+
+.table > tbody + tbody {
+  border-top: none;
+}
+
+table {
+  border-spacing: 0;
+  border-collapse: collapse;
+}
+
+table.results td:first-child {
+  min-width: 150px;
+}
+
+table.compare-table td {
+  width: 33%;
+}
+
+th.sortable:hover {
+  color: #000;
+  cursor: pointer;
+}
+th.sortable .glyphicon {
+  margin-left: 5px;
+}
+
+tr.highlight {
+  background: #fff;
+}
+
+tr.best {
+  border-left: 5px solid #5bbd72;
+  border-right: 5px solid #5bbd72;
+  box-sizing: content-box;
+}
+
+.navbar-fixed-top ul.nav li.active a {
+  border-bottom: 3px solid #dd4814;
+}
+
+.navbar-fixed-top ul.nav li {
+  border-left: 1px solid #262626;
+}
+
+.navbar-fixed-top ul.nav li:last-child {
+  border-right: 1px solid #262626;
+}
+
+.navbar-fixed-top ul.nav li:hover, .navbar-inverse ul.navbar-nav > .active:hover {
+  background-color: #dd4814;
+  border-bottom: 3px solid #dd4814;
+  border-left: 1px solid #dd4814;
+}
+
+.navbar-fixed-top.navbar-inverse .navbar-nav>.active>a {
+  background-color: inherit;
+}
+
+.navbar-fixed-top.navbar-inverse .navbar-nav > li > a {
+  color: #FFF;
+}
+
+.form-horizontal label span {
+  padding: 0 10px 0 2px;
+}
+
+.modal-dialog {
+  width: 800px;
+  margin: 60px auto;
+}
+
+.form-group .react-tagsinput {
+  padding: 0;
+}
+
+.react-tagsinput .react-tagsinput-tag {
+  border-color: #c03f11;
+  background-color: #dd4814;
+  color: #fff;
+}
+
+.react-tagsinput .react-tagsinput-remove {
+  color: #fff;
+}
+
+.filter-bar a {
+  color: #000;
+}
+.filter-bar a:hover {
+  color: #dd4814;
+  text-decoration: none;
+}
+.filter-bar h4 {
+  color: #888;
+}
+.svg {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+.svg .glyphicon-refresh {
+  opacity: .1;
+  font-size: 96px;
+  margin-top: 100px;
+}
+svg {
+  width: inherit;
+  height: inherit;
+}

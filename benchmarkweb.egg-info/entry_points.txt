@@ -1,0 +1,5 @@
+      [paste.app_factory]
+      main = benchmarkweb:main
+      [console_scripts]
+      initialize_db = benchmarkweb.scripts.initialize_db:main
+      

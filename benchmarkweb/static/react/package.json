@@ -1,0 +1,46 @@
+{
+  "name": "benchmark-web-ui",
+  "version": "0.0.1",
+  "description": "React frontend for CABS",
+  "repository": "https://github.com/juju-solutions/benchmark-web",
+  "main": "js/app.js",
+  "dependencies": {
+    "flux": "^2.0.1",
+    "keymirror": "~0.1.0",
+    "object-assign": "^1.0.0",
+    "react": "^0.13.2",
+    "react-router": "^0.13.2",
+    "react-bootstrap": "^0.21.0",
+    "classnames": "^1.1.4",
+    "underscore": "^1.8.2",
+    "rickshaw": "^1.5.1",
+    "moment": "~2.10.2",
+    "react-tagsinput": "~1.2.0",
+    "yamljs": "~0.2.3"
+  },
+  "devDependencies": {
+    "browserify": "^6.2.0",
+    "envify": "^3.0.0",
+    "jest-cli": "~0.1.17",
+    "reactify": "^0.15.2",
+    "uglify-js": "~2.4.15",
+    "watchify": "^2.1.1",
+    "babelify": "~6.0.2"
+  },
+  "scripts": {
+    "start": "watchify -o js/bundle.js -v -d .",
+    "build": "NODE_ENV=production browserify . | uglifyjs -cm > js/bundle.min.js",
+    "test": "jest"
+  },
+  "author": "Tim Van Steenburgh",
+  "browserify": {
+    "transform": [
+      "reactify",
+      "envify",
+      "babelify"
+    ]
+  },
+  "jest": {
+    "rootDir": "./js"
+  }
+}

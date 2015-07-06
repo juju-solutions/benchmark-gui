@@ -1,8 +1,7 @@
 .coverage
 .venv/
-*.egg-info/
+collectorweb.egg-info/
 *.pyc
 dist/
 **node_modules/
-benchmarkweb/static/react/js/.bundle.js
-deploy/
+collectorweb/static/react/js/.bundle.js
