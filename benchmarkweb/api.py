@@ -1,7 +1,5 @@
 import jujuclient
 
-from .db import DB
-
 
 def get_service_units(status):
     results = {}
@@ -68,7 +66,7 @@ class ActionEnvironment(jujuclient.Environment):
 
 
 class API(object):
-    def __init__(self, db, settings):
+    def __init__(self, settings):
         api_endpoint = settings['juju.api.endpoint']
         api_user = settings['juju.api.user']
         api_secret = settings['juju.api.secret']
@@ -79,17 +77,12 @@ class API(object):
         except jujuclient.EnvError as e:
             raise e
 
-        self.db = db
         self.env = env
         self.settings = settings
 
     @classmethod
-    def from_settings(cls, settings):
-        return cls(DB.from_settings(settings), settings)
-
-    @classmethod
     def from_request(cls, request):
-        return cls(DB.from_request(request), request.registry.settings)
+        return cls(request.registry.settings)
 
     def get_status(self):
         return self.env.status()

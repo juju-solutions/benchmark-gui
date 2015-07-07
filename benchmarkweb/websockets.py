@@ -11,7 +11,7 @@ import gevent
 from gevent import Greenlet
 from gevent.queue import Queue, Empty
 
-from .api import ActionEnvironment
+from .api import API
 from .db import DB
 from .models import Action
 
@@ -55,9 +55,9 @@ class JujuHandler(Actor):
 
 
 class DBUpdater(Actor):
-    def __init__(self, env, settings, clients):
+    def __init__(self, api, settings, clients):
         super(DBUpdater, self).__init__()
-        self.env = env
+        self.api = api
         self.settings = settings
         self.clients = clients
         self.start()
@@ -77,7 +77,7 @@ class DBUpdater(Actor):
             log.exception(e)
 
     def update_db(self, db, message):
-        actions = self.env.actions_list_all()
+        actions = self.api.get_actions()
         for receiver_actions in actions.get('actions', []):
             for action in receiver_actions.get('actions', {}):
                 self.update_action(db, action)
@@ -92,13 +92,19 @@ class DBUpdater(Actor):
                 db.env.actions.append(action)
         else:
             action.data = action_data
-        action.get_profile_data(db)
+
+        if not action.bundle:
+            status = self.api.get_status()
+            services = status.get('Services', []).keys()
+            action.set_bundle(
+                status,
+                self.api.get_annotations(services)
+            )
 
 
 def juju_api_listener(settings):
-    env = ActionEnvironment(settings['juju.api.endpoint'])
-    env.login(settings['juju.api.secret'],
-              settings['juju.api.user'])
+    api = API(settings)
+    env = api.env
 
     # store juju env info in global app settings
     for k, v in env.info().items():
@@ -108,7 +114,8 @@ def juju_api_listener(settings):
         env.get_env_config()['Config'].get('region')
 
     # start the db-updater greenlet
-    db_updater = DBUpdater(env, settings, handlers)
+    db_updater = DBUpdater(
+        api, settings, handlers)
 
     watch = env.get_watch()
     for msg in watch:

@@ -1,4 +1,3 @@
-import datetime
 import json
 import textwrap
 
@@ -28,7 +27,7 @@ def root(request):
     # Make sure we can connect to juju api and display error if not
     s = request.registry.settings
     try:
-        api = API(None, s)  # noqa
+        api = API(s)  # noqa
     except Exception as e:
         def mask(s):
             if not s:
@@ -81,45 +80,6 @@ def api_root(request):
         'environment_count': db.get_environments().count(),
         'version': VERSION,
     }
-
-
-@view_config(route_name='api_unit', renderer='json', request_method='GET')
-def api_unit_get(request):
-    service = request.matchdict['service']
-    unit = request.matchdict['unit']
-    action = request.params.get('action')
-    key = 'unit-{}-{}'.format(service, unit)
-
-    db = DB.from_request(request)
-    result = db.get_profile_data(key, action=action)
-    return result or HTTPNotFound()
-
-
-@view_config(route_name='api_unit', request_method='POST')
-def api_unit_post(request):
-    service = request.matchdict['service']
-    unit = request.matchdict['unit']
-    key = 'unit-{}-{}'.format(service, unit)
-    data = request.json_body
-
-    api = API.from_request(request)
-    db = DB.from_request(request)
-
-    status = api.get_status()
-    services = status.get('Services', []).keys()
-    annotations = api.get_annotations(services)
-
-    existing = db.get_profile_data(key) or []
-    existing.append({
-        "data": data,
-        "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "action": request.params.get('action'),
-        "status": status,
-        "annotations": annotations,
-    })
-
-    db.set_profile_data(key, existing)
-    return HTTPFound()
 
 
 @view_config(route_name='api_service', renderer='json', request_method='GET')

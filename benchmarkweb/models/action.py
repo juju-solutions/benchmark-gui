@@ -1,10 +1,8 @@
 import datetime
-import sys
 
 import dateutil.parser
 import humanize
 import pytz
-import requests
 import yaml
 
 from sqlalchemy.orm import relationship
@@ -116,44 +114,13 @@ class Action(Base):
         """
         return (self.stop and dt) and (dt >= self.stop)
 
-    def get_profile_data(self, db):
-        if self.is_current(self.profile_updated_at):
-            return self.profile
-
-        p = db.get_profile_data(
-            self.receiver, self.uuid, self.start, self.stop)
-        p = p[0] if p else None
-
-        if p:
-            self.profile = Profile(p['data'])
-            self.profile_updated_at = \
-                datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-
-        if p and p.get('status'):
-            try:
-                b = make_bundle(p.get('status'))
-                b = yaml.load(b).values()[0]
-                b = trim_bundle(b, self.service)
-                b = add_annotations(b, p.get('annotations'))
-                self.bundle = yaml.safe_dump(b, default_flow_style=False)
-            except Exception as e:
-                sys.stderr.write(str(e) + '\n')
-
-        return self.profile
-
-    def get_metrics(self, settings):
-        if self.is_current(self.metrics_updated_at):
-            return self.metrics
-
-        url = _get_graph_url(settings, self, format_='json')
-        r = requests.get(url)
-
-        if r.status_code == 200:
-            self.metrics = r.json()
-            self.metrics_updated_at = \
-                datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-
-        return self.metrics
+    def set_bundle(self, status, annotations):
+        b = make_bundle(status)
+        b = yaml.load(b).values()[0]
+        b = trim_bundle(b, self.service)
+        b = add_annotations(b, annotations)
+        self.bundle = yaml.safe_dump(b, default_flow_style=False)
+        return self.bundle
 
     @property
     def benchmark_name(self):

@@ -1,7 +1,3 @@
-import datetime
-
-import pytz
-
 from . import models as M
 
 
@@ -54,42 +50,6 @@ class DB(object):
             .filter(M.Unit.environment_id == self.env.id) \
             .filter_by(name=name) \
             .first()
-
-    def get_profile_data(self, unit_name, action_uuid=None, start=None,
-                         stop=None):
-        """Return saved profiling data for a unit.
-
-        :param unit_name: unit name in the form "unit-pts-0"
-
-        Optionally filter on `action_uuid`
-        Optionally filter on `start` <= timestamp >= `stop`.
-
-        """
-        unit = self.get_unit(unit_name)
-        if not unit:
-            return None
-
-        result = unit.data
-        if not isinstance(result, list):
-            result = [result]
-
-        if not (action_uuid or start or stop):
-            return result
-
-        def match(d):
-            if action_uuid and d.get('action') != action_uuid:
-                return False
-            ts = d.get('timestamp')
-            if ts:
-                ts = datetime.datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ")
-                ts = pytz.utc.localize(ts)
-            if (start and ts) and (ts < start):
-                return False
-            if (stop and ts) and (ts > stop):
-                return False
-            return True
-
-        return [d for d in result if match(d)]
 
     def set_profile_data(self, key, data):
         """Save profiling data for the unit identified by `key`.

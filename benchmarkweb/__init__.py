@@ -39,7 +39,6 @@ def main(global_config, **settings):
     config.add_route('api_root', '/api')
     config.add_route('api_action_publish', '/api/actions/{action}/publish')
     config.add_route('api_service', '/api/services/{service}')
-    config.add_route('api_unit', '/api/units/{service}/{unit}')
 
     config.add_route('socket_io', 'socket.io/*remaining')
     gevent.spawn(juju_api_listener, config.registry.settings)
