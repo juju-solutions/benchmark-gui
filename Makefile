@@ -23,7 +23,7 @@ lint: .venv
 	@$(FLAKE8) $(PROJECT) --ignore E501 && echo OK
 
 .venv:
-	sudo apt-get install -qy python-virtualenv libpq-dev python-dev
+	sudo apt-get install -qy python-virtualenv libpq-dev python-dev libyaml-dev
 	virtualenv .venv
 	$(PYHOME)/pip install --upgrade setuptools
 	$(PYTHON) setup.py develop
