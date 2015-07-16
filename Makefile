@@ -25,6 +25,7 @@ lint: .venv
 .venv:
 	sudo apt-get install -qy python-virtualenv libpq-dev python-dev
 	virtualenv .venv
+	$(PYHOME)/pip install --upgrade setuptools
 	$(PYTHON) setup.py develop
 
 npm:
