@@ -94,12 +94,7 @@ class DBUpdater(Actor):
             action.data = action_data
 
         if not action.bundle:
-            status = self.api.get_status()
-            services = status.get('Services', []).keys()
-            action.set_bundle(
-                status,
-                self.api.get_annotations(services)
-            )
+            action.set_bundle(self.api.env)
 
 
 def juju_api_listener(settings):

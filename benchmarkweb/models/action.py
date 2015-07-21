@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 
 from .base import Base
-from ..lib import deployerizer
+from ..lib import bundler
 
 
 def date_str(d):
@@ -114,11 +114,10 @@ class Action(Base):
         """
         return (self.stop and dt) and (dt >= self.stop)
 
-    def set_bundle(self, status, annotations):
-        b = make_bundle(status)
-        b = yaml.load(b).values()[0]
+    def set_bundle(self, api):
+        b = bundler.get_bundle(api, as_yaml=False)
+        b = b.values()[0]
         b = trim_bundle(b, self.service)
-        b = add_annotations(b, annotations)
         self.bundle = yaml.safe_dump(b, default_flow_style=False)
         return self.bundle
 
@@ -212,126 +211,6 @@ class Action(Base):
         return self.data.get('output', {}).get('results', {})
 
 
-class Dict(dict):
-    def __getattr__(self, name):
-        return self[name]
-
-
-class Profile(Dict):
-    def __init__(self, profile):
-        super(Profile, self).__init__()
-        self['hardware'] = {}
-        self['packages'] = {}
-        for k in profile.get('hardware', {}):
-            self['hardware'][k] = Hardware(profile.get('hardware', {})[k])
-        self['packages'] = Packages(profile.get('packages', {}))
-
-
-class Hardware(dict):
-    def __init__(self, data, parent=None):
-        self.__parse(data)
-
-    def __parse(self, data, parent=None):
-        name = self.__name(data, parent)
-        for k, v in data.iteritems():
-            if k in ('class', 'id'):
-                continue
-            if k == 'children':
-                for child in v:
-                    self.__parse(child, name)
-            elif isinstance(v, dict):
-                self.__parse(v, "%s.%s" % (name, k))
-            else:
-                self["%s.%s" % (name, k)] = v
-
-    def __name(self, data, parent):
-        """We don't get class or id before getting to children in __parse"""
-        name = 'system'
-        if 'class' not in data:
-            return parent
-
-        if data['class'] != name:
-            name = data['id'].replace(':', '-')
-
-        return "%s.%s" % (parent, name) if parent else name
-
-
-class Package(Dict):
-    @classmethod
-    def parse(cls, pkg):
-        if 'name' not in pkg:
-            raise Exception('Invalid package data')
-
-        return cls({'name': pkg.get('name'),
-                    'version': pkg.get('version', None),
-                    'description': pkg.get('desc', '')})
-
-
-class Dpkg(Package):
-    @classmethod
-    def parse(cls, pkg):
-        if 'name' not in pkg:
-            raise Exception('Invalid package data')
-
-        name = pkg['name']
-        if ":%s" % pkg.get('arch') not in pkg['name']:
-            name = "%s:%s" % (pkg.get('name'), pkg.get('arch'))
-
-        return cls({'name': name, 'version': pkg.get('version'),
-                    'description': pkg.get('desc', '')})
-
-
-class Packages(dict):
-    mapping = {'dpkg': Dpkg.parse}
-
-    def __init__(self, data):
-        for k, v in data.iteritems():
-            self[k] = [self.mapping.get(k, Package.parse)(p) for p in v]
-
-
-def _get_graph_url(settings, action, format_=None, target=None):
-    graphite_url = settings['graphite.url']
-    graphite_format = format_ or settings['graphite.format']
-    # target = target or '{}.*.*.*'.format(action.receiver)
-    target = '*.*.*.*'
-
-    def _format_date(d):
-        if not d:
-            return d
-
-        return d.astimezone(dateutil.tz.tzutc()).strftime('%H:%M_%Y%m%d')
-
-    start = _format_date(action.start) or '-5min'
-    stop = _format_date(action.stop)
-
-    tpl = '{}/render?height=340&width=420&target={}&format={}&bgcolor=00000000'
-    url = tpl.format(
-        graphite_url, target, graphite_format)
-
-    if start:
-        url += '&from={}'.format(start)
-    if stop:
-        url += '&until={}'.format(stop)
-
-    return url
-
-
-def make_bundle(status_json):
-    class O(object):
-        pass
-
-    options = O()
-    options.environment = 'bundle'
-    options.output = ''
-    options.include_defaults = False
-    options.include_charm_versions = True
-    options.include_placement = False
-    options.location_format = ''
-
-    e = deployerizer.Environment(options, status_json)
-    return e.deployerize()
-
-
 def trim_bundle(d, svc):
     rels = d['relations']
     svcs = d['services']
@@ -364,32 +243,4 @@ def trim_bundle(d, svc):
         a, b = r
         if a not in services or b not in services:
             rels.remove(r)
-    return d
-
-
-def add_annotations(d, annotations):
-    """Add annotations (in place) to the bundle described by `d`.
-
-    `annotations` must contain annotations for every service in `d`,
-    else no annotations will be added.
-
-    Format of `annotations`:
-
-        {
-            'servicename': {'gui-y': ..., 'gui-x': ..., }
-            ...
-        }
-
-    """
-    if not annotations:
-        return d
-
-    # if any of the annotations are empty dicts, return
-    if not all(annotations[k] for k in annotations):
-        return d
-
-    if set(d['services'].keys()).issubset(annotations.keys()):
-        for s in d['services']:
-            d['services'][s]['annotations'] = annotations[s]
-
     return d
