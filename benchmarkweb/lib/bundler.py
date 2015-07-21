@@ -10,7 +10,7 @@ import subprocess
 import sys
 import yaml
 
-INVALID_HW_CONSTRAINTS = ('az',)
+INVALID_HW_CONSTRAINTS = ('availability-zone',)
 
 
 def run(cmd):
@@ -64,9 +64,12 @@ class Service(object):
 
     def _get_constraints(self):
         d = {}
-        d.update(self._get_hw_constraints())
         d.update(self.api.get_env_constraints()['Constraints'])
         d.update(self.service['Constraints'] or {})
+
+        if not d:
+            d.update(self._get_hw_constraints())
+
         return d
 
     def _get_hw_constraints(self):
