@@ -14,7 +14,7 @@
     "classnames": "^1.1.4",
     "underscore": "^1.8.2",
     "rickshaw": "^1.5.1",
-    "moment": "~2.11.2",
+    "moment": "~2.19.3",
     "react-tagsinput": "~1.2.0",
     "yamljs": "~0.2.3"
   },
